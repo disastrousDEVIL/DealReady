@@ -56,6 +56,7 @@ class QueryResponse(BaseModel):
 
 class AgentQueryResponse(BaseModel):
     answer: str
+    citations: list[dict[str, Any]] = []
     usage: dict[str, Any] = {}
     tool_calls: list[dict[str, Any]] = []
 

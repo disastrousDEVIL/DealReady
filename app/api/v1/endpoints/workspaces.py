@@ -38,6 +38,21 @@ def _markdown_filename_from_url(target_url: str) -> str:
     return f"{host}.md"
 
 
+def _replace_citation_filenames(result: dict, file_name_by_id: dict[str, str]) -> dict:
+    answer = result.get("answer", "")
+    for citation in result.get("citations", []):
+        file_id = citation.get("file_id")
+        original_name = file_name_by_id.get(file_id)
+        if not original_name:
+            continue
+        old_name = citation.get("filename")
+        if old_name:
+            answer = answer.replace(old_name, original_name)
+        citation["filename"] = original_name
+    result["answer"] = answer
+    return result
+
+
 @router.post("", response_model=WorkspaceResponse)
 async def create_workspace(
     workspace: WorkspaceCreate,
@@ -353,6 +368,7 @@ async def agent_query_workspace(
         )
         return AgentQueryResponse(
             answer=result["answer"],
+            citations=result.get("citations", []),
             usage=result.get("usage", {}),
             tool_calls=result.get("tool_calls", []),
         )
@@ -381,10 +397,18 @@ async def responses_query_workspace(
             previous_response_id=query.previous_response_id,
             store=query.store,
         )
+        files = (
+            db.query(WorkspaceFileORM)
+            .filter(WorkspaceFileORM.workspace_id == workspace_id)
+            .all()
+        )
+        file_name_by_id = {file_rec.file_id: file_rec.original_name for file_rec in files}
+        result = _replace_citation_filenames(result, file_name_by_id)
         return ResponsesQueryResponse(
             answer=result["answer"],
             response_id=result["response_id"],
             previous_response_id=result.get("previous_response_id"),
+            citations=result.get("citations", []),
             usage=result.get("usage", {}),
             tool_calls=result.get("tool_calls", []),
         )

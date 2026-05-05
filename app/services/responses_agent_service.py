@@ -93,6 +93,67 @@ class ResponsesAgentService:
             "total_tokens": getattr(usage, "total_tokens", 0),
         }
 
+    def _extract_citations(self, response: Any) -> List[Dict[str, Any]]:
+        citations = []
+        seen = set()
+        for item in getattr(response, "output", []):
+            if getattr(item, "type", None) != "message":
+                continue
+            for content in getattr(item, "content", []):
+                if getattr(content, "type", None) != "output_text":
+                    continue
+                for annotation in getattr(content, "annotations", []):
+                    annotation_type = getattr(annotation, "type", None)
+                    if annotation_type == "file_citation":
+                        citation = {
+                            "type": "file",
+                            "file_id": getattr(annotation, "file_id", None),
+                            "filename": getattr(annotation, "filename", None),
+                        }
+                        key = (citation["type"], citation["file_id"], citation["filename"])
+                    elif annotation_type == "url_citation":
+                        citation = {
+                            "type": "url",
+                            "url": getattr(annotation, "url", None),
+                            "title": getattr(annotation, "title", None),
+                        }
+                        key = (citation["type"], citation["url"], citation["title"])
+                    elif annotation_type == "container_file_citation":
+                        citation = {
+                            "type": "container_file",
+                            "file_id": getattr(annotation, "file_id", None),
+                            "filename": getattr(annotation, "filename", None),
+                            "container_id": getattr(annotation, "container_id", None),
+                        }
+                        key = (
+                            citation["type"],
+                            citation["file_id"],
+                            citation["filename"],
+                            citation["container_id"],
+                        )
+                    else:
+                        continue
+
+                    if key in seen:
+                        continue
+                    seen.add(key)
+                    citation["number"] = len(citations) + 1
+                    citations.append(citation)
+        return citations
+
+    def _append_citations_to_answer(self, answer: str, citations: List[Dict[str, Any]]) -> str:
+        if not citations:
+            return answer
+
+        lines = ["", "Citations"]
+        for citation in citations:
+            label = citation.get("filename") or citation.get("title") or citation.get("url")
+            if citation["type"] == "url" and citation.get("url"):
+                lines.append(f"[{citation['number']}] {label} - {citation['url']}")
+            else:
+                lines.append(f"[{citation['number']}] {label}")
+        return f"{answer.rstrip()}\n" + "\n".join(lines)
+
     def answer(
         self,
         vector_store_id: str,
@@ -100,10 +161,15 @@ class ResponsesAgentService:
         max_num_results: int = 5,
         previous_response_id: Optional[str] = None,
         store: bool = True,
+        demo_context: Optional[str] = None,
     ) -> Dict[str, Any]:
+        instructions = WORKSPACE_AGENT_PROMPT
+        if demo_context:
+            instructions = f"{instructions}\n\nDemo context:\n{demo_context.strip()}"
+
         request: Dict[str, Any] = {
             "model": self.model,
-            "instructions": WORKSPACE_AGENT_PROMPT,
+            "instructions": instructions,
             "input": question,
             "tools": self._build_tools(vector_store_id, max_num_results),
             "store": store,
@@ -113,6 +179,8 @@ class ResponsesAgentService:
 
         response = self.client.responses.create(**request)
         tool_calls = self._extract_tool_calls(response)
+        citations = self._extract_citations(response)
+        answer = self._append_citations_to_answer(response.output_text, citations)
 
         logger.info(
             "responses_query_tool_usage vector_store_id=%s response_id=%s tools=%s",
@@ -122,9 +190,10 @@ class ResponsesAgentService:
         )
 
         return {
-            "answer": response.output_text,
+            "answer": answer,
             "response_id": response.id,
             "previous_response_id": previous_response_id,
             "usage": self._extract_usage(response),
             "tool_calls": tool_calls,
+            "citations": citations,
         }
