@@ -14,10 +14,11 @@ Instant RAG-powered chatbot demos for sales teams. Paste a prospect URL and opti
 ```bash
 python3 -m venv venv
 source venv/bin/activate
-pip install -r requirements.txt
+pip install -r backend/requirements.txt
+cd backend
 uvicorn app.main:app --reload
 ```
 
 ## Environment Variables
 
-Copy `.env.example` to `.env` and fill in your API keys.
+Copy `backend/.env.example` to `backend/.env` and fill in your API keys.
