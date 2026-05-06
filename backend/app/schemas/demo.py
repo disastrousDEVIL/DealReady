@@ -24,6 +24,7 @@ class DemoResponse(BaseModel):
 
 class DemoCreateResponse(DemoResponse):
     vector_store_id: str
+    generated_password: str
     indexed_files: list[dict[str, Any]] = []
     pages_crawled: int = 0
 
@@ -34,6 +35,15 @@ class DemoQueryRequest(BaseModel):
     max_results: int = 10
     store: bool = True
     access_password: Optional[str] = None
+
+
+class DemoAuthRequest(BaseModel):
+    access_password: Optional[str] = None
+
+
+class DemoAuthResponse(BaseModel):
+    authenticated: bool
+    requires_password: bool
 
 
 class DemoQueryResponse(BaseModel):

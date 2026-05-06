@@ -12,7 +12,14 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import get_db, get_vector_store_service
 from app.models.demo import AgentDemoFileORM, AgentDemoORM, DemoFileStatus, DemoStatus
-from app.schemas.demo import DemoCreateResponse, DemoQueryRequest, DemoQueryResponse, DemoResponse
+from app.schemas.demo import (
+    DemoAuthRequest,
+    DemoAuthResponse,
+    DemoCreateResponse,
+    DemoQueryRequest,
+    DemoQueryResponse,
+    DemoResponse,
+)
 from app.services.demo_lifecycle_service import DemoLifecycleService
 from app.services.firecrawl_service import FirecrawlService
 from app.services.responses_agent_service import ResponsesAgentService
@@ -122,7 +129,6 @@ async def create_demo(
     prospect_name: str = Form(...),
     company_url: str = Form(...),
     logo_url: Optional[str] = Form(default=None),
-    access_password: Optional[str] = Form(default=None),
     files: List[UploadFile] = File(
         default_factory=list,
         description=f"Optional PDF uploads. Maximum {MAX_PDFS_PER_DEMO} files, {MAX_PDF_UPLOAD_BYTES // (1024 * 1024)} MB each.",
@@ -135,6 +141,7 @@ async def create_demo(
     validated_pdfs = await _validate_pdfs(files)
 
     public_slug = secrets.token_urlsafe(8)
+    generated_password = secrets.token_urlsafe(8)
     expires_at = datetime.utcnow() + timedelta(days=DEMO_TTL_DAYS)
     vector_store_id = vector_service.create_workspace_vector_store(prospect_name)
     temp_paths = []
@@ -145,7 +152,7 @@ async def create_demo(
         logo_url=logo_url,
         vector_store_id=vector_store_id,
         public_slug=public_slug,
-        access_password=access_password,
+        access_password=generated_password,
         status=DemoStatus.ACTIVE,
         expires_at=expires_at,
     )
@@ -223,6 +230,7 @@ async def create_demo(
         return DemoCreateResponse(
             **_demo_response(demo).model_dump(),
             vector_store_id=demo.vector_store_id,
+            generated_password=generated_password,
             indexed_files=indexed_files,
             pages_crawled=len(crawl["pages"]),
         )
@@ -247,6 +255,22 @@ async def get_demo(slug: str, db: Session = Depends(get_db)):
     if demo.status != DemoStatus.ACTIVE or demo.expires_at <= datetime.utcnow():
         raise HTTPException(status_code=410, detail="Demo link has expired")
     return _demo_response(demo)
+
+
+@router.post("/{slug}/auth", response_model=DemoAuthResponse)
+async def authenticate_demo(slug: str, payload: DemoAuthRequest, db: Session = Depends(get_db)):
+    demo = db.query(AgentDemoORM).filter(AgentDemoORM.public_slug == slug).first()
+    if demo is None:
+        raise HTTPException(status_code=404, detail="Demo not found")
+    if demo.status != DemoStatus.ACTIVE or demo.expires_at <= datetime.utcnow():
+        raise HTTPException(status_code=410, detail="Demo link has expired")
+
+    requires_password = bool(demo.access_password)
+    if not requires_password:
+        return DemoAuthResponse(authenticated=True, requires_password=False)
+    if payload.access_password and payload.access_password == demo.access_password:
+        return DemoAuthResponse(authenticated=True, requires_password=True)
+    raise HTTPException(status_code=401, detail="Invalid demo password")
 
 
 @router.post("/{slug}/query", response_model=DemoQueryResponse)
