@@ -24,6 +24,7 @@ class VectorStoreService:
 
         self.client = OpenAI(api_key=api_key)
         self.model = os.getenv("OPENAI_DEFAULT_MODEL", "gpt-4o")
+        self.vector_store_expiry_days = int(os.getenv("VECTOR_STORE_EXPIRY_DAYS", "7"))
         self.default_chunking = {
             "type": "static",
             "static": {"max_chunk_size_tokens": 800, "chunk_overlap_tokens": 400},
@@ -32,7 +33,7 @@ class VectorStoreService:
     def create_workspace_vector_store(self, workspace_name: str) -> str:
         vs = self.client.vector_stores.create(
             name=workspace_name,
-            expires_after={"anchor": "last_active_at", "days": 30},
+            expires_after={"anchor": "last_active_at", "days": self.vector_store_expiry_days},
         )
         return vs.id
 

@@ -141,19 +141,6 @@ class ResponsesAgentService:
                     citations.append(citation)
         return citations
 
-    def _append_citations_to_answer(self, answer: str, citations: List[Dict[str, Any]]) -> str:
-        if not citations:
-            return answer
-
-        lines = ["", "Citations"]
-        for citation in citations:
-            label = citation.get("filename") or citation.get("title") or citation.get("url")
-            if citation["type"] == "url" and citation.get("url"):
-                lines.append(f"[{citation['number']}] {label} - {citation['url']}")
-            else:
-                lines.append(f"[{citation['number']}] {label}")
-        return f"{answer.rstrip()}\n" + "\n".join(lines)
-
     def answer(
         self,
         vector_store_id: str,
@@ -180,7 +167,7 @@ class ResponsesAgentService:
         response = self.client.responses.create(**request)
         tool_calls = self._extract_tool_calls(response)
         citations = self._extract_citations(response)
-        answer = self._append_citations_to_answer(response.output_text, citations)
+        answer = response.output_text
 
         logger.info(
             "responses_query_tool_usage vector_store_id=%s response_id=%s tools=%s",
