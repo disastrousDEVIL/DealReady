@@ -2,6 +2,7 @@
 
 import logging
 import os
+import re
 from typing import Any, Dict, List, Optional
 
 from openai import OpenAI
@@ -9,6 +10,27 @@ from openai import OpenAI
 from app.services.file_search_agent_service import WORKSPACE_AGENT_PROMPT
 
 logger = logging.getLogger(__name__)
+
+OPENAI_CITATION_MARKER_RE = re.compile(r"(?:[^]*|\s*�filecite�[^\s]*)")
+SECTION_HEADING_MAP = {
+    "summary": "## ✅ Summary",
+    "what they do": "## 🔎 What They Do",
+    "what it does": "## 🔎 What It Does",
+    "what i know from the indexed site": "## 🔎 What I Found",
+    "what i found": "## 🔎 What I Found",
+    "how they work": "## 🧩 How They Work",
+    "credibility signals": "## ✅ Credibility Signals",
+    "industries and clients": "## 🌍 Industries And Clients",
+    "proof of work": "## 📄 Proof Of Work",
+    "overall impression": "## 👉 Overall Impression",
+    "what i can't reveal": "## ⚠️ What I Can't Reveal",
+    "if you want": "## 👉 What You Can Ask Next",
+    "key points": "## 🔎 Key Points",
+    "services": "## 🧩 Services",
+    "documents": "## 📄 Documents",
+    "limitations": "## ⚠️ Limitations",
+    "next steps": "## 👉 Next Steps",
+}
 
 
 class ResponsesAgentService:
@@ -141,6 +163,30 @@ class ResponsesAgentService:
                     citations.append(citation)
         return citations
 
+    def _clean_answer_text(self, answer: str) -> str:
+        """Remove raw OpenAI annotation markers that should render as separate citations."""
+        cleaned = OPENAI_CITATION_MARKER_RE.sub("", answer)
+        cleaned = re.sub(r"[ \t]{2,}", " ", cleaned).strip()
+        return self._normalize_markdown_structure(cleaned)
+
+    def _normalize_markdown_structure(self, answer: str) -> str:
+        """Convert common plain section labels into Markdown headings for consistent UI."""
+        lines = answer.splitlines()
+        normalized: list[str] = []
+
+        for line in lines:
+            stripped = line.strip()
+            heading = SECTION_HEADING_MAP.get(stripped.rstrip(":").lower())
+            if heading and not stripped.startswith("#"):
+                if normalized and normalized[-1] != "":
+                    normalized.append("")
+                normalized.append(heading)
+                normalized.append("")
+                continue
+            normalized.append(line)
+
+        return "\n".join(normalized).strip()
+
     def answer(
         self,
         vector_store_id: str,
@@ -167,7 +213,7 @@ class ResponsesAgentService:
         response = self.client.responses.create(**request)
         tool_calls = self._extract_tool_calls(response)
         citations = self._extract_citations(response)
-        answer = response.output_text
+        answer = self._clean_answer_text(response.output_text)
 
         logger.info(
             "responses_query_tool_usage vector_store_id=%s response_id=%s tools=%s",
