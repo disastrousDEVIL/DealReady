@@ -2,6 +2,7 @@
 
 from datetime import datetime, timedelta
 import os
+import re
 import secrets
 import tempfile
 from typing import List, Optional
@@ -30,6 +31,7 @@ router = APIRouter(prefix="/demos", tags=["demos"])
 MAX_PDF_UPLOAD_BYTES = 25 * 1024 * 1024
 MAX_PDFS_PER_DEMO = 5
 DEMO_TTL_DAYS = 7
+OPENAI_CITATION_MARKER_RE = re.compile(r"(?:[^]*|\s*�filecite�[^\s]*)")
 
 
 def _chat_url(slug: str) -> str:
@@ -90,6 +92,11 @@ def _replace_citation_metadata(result: dict, file_meta_by_id: dict[str, dict]) -
         result["citations"] = result.get("citations", []) + extra_url_citations
     result["answer"] = answer
     return result
+
+
+def _clean_answer_text(answer: str) -> str:
+    cleaned = OPENAI_CITATION_MARKER_RE.sub("", answer)
+    return re.sub(r"[ \t]{2,}", " ", cleaned).strip()
 
 
 async def _validate_pdfs(files: Optional[List[UploadFile]]) -> list[tuple[str, bytes]]:
@@ -305,7 +312,7 @@ async def query_demo(slug: str, query: DemoQueryRequest, db: Session = Depends(g
     }
     result = _replace_citation_metadata(result, file_meta_by_id)
     return DemoQueryResponse(
-        answer=result["answer"],
+        answer=_clean_answer_text(result["answer"]),
         response_id=result["response_id"],
         previous_response_id=result.get("previous_response_id"),
         citations=result.get("citations", []),
