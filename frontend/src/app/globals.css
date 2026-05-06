@@ -1,13 +1,14 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f7f3ea;
-  --surface: #fffcf6;
+  --background: #f3eee4;
+  --surface: #fffdf8;
+  --surface-soft: #f2e8d8;
   --primary: #17352b;
   --accent: #c45a2a;
-  --border: #e2d8c8;
-  --foreground: #111827;
-  --muted: #6b6257;
+  --border: #ddd2c0;
+  --foreground: #25231f;
+  --muted: #6a645a;
   --success: #2f7d4f;
   --error: #b42318;
 }
@@ -22,8 +23,8 @@
 
 body {
   background:
-    radial-gradient(1200px 500px at 10% -15%, #ecd8bc 0%, transparent 60%),
-    radial-gradient(900px 450px at 110% 0%, #d8e3dd 0%, transparent 70%),
+    radial-gradient(1200px 520px at 12% -15%, #e6c9a0 0%, transparent 58%),
+    radial-gradient(900px 460px at 112% 0%, #cbdcd4 0%, transparent 70%),
     var(--background);
   color: var(--foreground);
   font-family: "Avenir Next", "Montserrat", "Segoe UI", sans-serif;
@@ -31,4 +32,91 @@ body {
 
 * {
   border-color: var(--border);
+}
+
+.markdown-content {
+  line-height: 1.65;
+}
+
+.markdown-content p {
+  margin: 0.55rem 0;
+}
+
+.markdown-content h2 {
+  margin: 1.6rem 0 0.8rem;
+  font-size: 1.45rem;
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+.markdown-content h2:first-child {
+  margin-top: 0;
+}
+
+.markdown-content h3 {
+  margin: 1.15rem 0 0.55rem;
+  font-size: 1.05rem;
+  font-weight: 800;
+  line-height: 1.3;
+}
+
+.markdown-content ul,
+.markdown-content ol {
+  margin: 0.7rem 0;
+  padding-left: 1.55rem;
+}
+
+.markdown-content li {
+  margin: 0.32rem 0;
+  padding-left: 0.1rem;
+}
+
+.markdown-content strong {
+  color: var(--primary);
+  font-weight: 700;
+}
+
+.markdown-content hr {
+  margin: 1.8rem 0;
+  border: 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.16);
+}
+
+.markdown-content a {
+  color: var(--accent);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.markdown-content code {
+  border-radius: 0.5rem;
+  background: #fffaf1;
+  padding: 0.1rem 0.35rem;
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+}
+
+.dark-markdown strong {
+  color: #ffffff;
+  font-weight: 800;
+}
+
+.dark-markdown a {
+  color: #66aaff;
+}
+
+.dark-markdown code {
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+}
+
+.dark-markdown h2,
+.dark-markdown h3 {
+  color: #ffffff;
+}
+
+.dark-markdown li::marker {
+  color: rgba(255, 255, 255, 0.82);
 }
