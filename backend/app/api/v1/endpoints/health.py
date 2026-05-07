@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends
 
 from app.api.deps import get_vector_store_service
 from app.core.config import is_database_configured
-from app.schemas.workspace import HealthCheckResponse
+from app.schemas.health import HealthCheckResponse
 from app.services.vector_store_service import VectorStoreService
 
 router = APIRouter(prefix="/health", tags=["health"])
