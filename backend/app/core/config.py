@@ -1,9 +1,11 @@
 """Application configuration helpers."""
 
 import os
+from pathlib import Path
 from dotenv import load_dotenv
 
 load_dotenv(".env")
+load_dotenv(Path(__file__).resolve().parents[2] / ".env")
 
 
 def get_database_url() -> str:

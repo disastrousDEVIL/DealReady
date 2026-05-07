@@ -12,7 +12,7 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db, get_vector_store_service
-from app.models.demo import AgentDemoFileORM, AgentDemoORM, DemoFileStatus, DemoStatus
+from app.models.demo import AgentDemoFileORM, AgentDemoORM, DemoFileStatus, DemoFileType, DemoStatus
 from app.schemas.demo import (
     DemoAuthRequest,
     DemoAuthResponse,
@@ -186,7 +186,7 @@ async def create_demo(
                 file_id=file_id,
                 vector_store_file_id=vector_store_file_id,
                 original_name=markdown_name,
-                file_type="url",
+                file_type=DemoFileType.URL,
                 source_url=crawl["source_url"],
                 size_bytes=len(markdown_content.encode("utf-8")),
                 status=DemoFileStatus.COMPLETED,
@@ -217,7 +217,7 @@ async def create_demo(
                     file_id=file_id,
                     vector_store_file_id=vector_store_file_id,
                     original_name=filename,
-                    file_type="pdf",
+                    file_type=DemoFileType.PDF,
                     source_url=None,
                     size_bytes=len(content),
                     status=DemoFileStatus.COMPLETED,
@@ -306,7 +306,8 @@ async def query_demo(slug: str, query: DemoQueryRequest, db: Session = Depends(g
     file_meta_by_id = {
         file_rec.file_id: {
             "filename": file_rec.original_name,
-            "source_url": file_rec.source_url or (demo.company_url if file_rec.file_type == "url" else None),
+            "source_url": file_rec.source_url
+            or (demo.company_url if file_rec.file_type == DemoFileType.URL else None),
         }
         for file_rec in files
     }
