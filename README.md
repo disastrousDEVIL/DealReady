@@ -1,10 +1,10 @@
-# InstaRAG ⚡
+# PitchAgent ⚡
 
 An AI-powered full-stack app that lets sales teams send prospects a personalized RAG chatbot demo trained on their own website and product docs. The prospect experiences the product with their own data before a single sales call happens.
 
 ## 🧩 Core Idea
 
-Instead of building a custom demo for every prospect, InstaRAG:
+Instead of building a custom demo for every prospect, PitchAgent:
 
 1. Crawls the prospect's website via Firecrawl
 2. Accepts optional PDF uploads (up to 5 files, 25 MB each)
@@ -24,7 +24,7 @@ Most sales demo tools:
 * Can't cite sources
 * Need ongoing maintenance
 
-InstaRAG:
+PitchAgent:
 
 * Creates a demo in one form submission
 * Grounds every answer in crawled/uploaded content
@@ -80,8 +80,8 @@ Demos expire after 7 days. The maintenance endpoint marks them expired and delet
 ## 🧾 Setup Instructions
 
 ```bash
-git clone https://github.com/disastrousDEVIL/InstaRAG.git
-cd InstaRAG
+git clone https://github.com/disastrousDEVIL/PitchAgent.git
+cd PitchAgent
 
 # Backend
 python3 -m venv venv
@@ -273,7 +273,7 @@ Response:
 ## 🧾 Folder Structure
 
 ```
-InstaRAG/
+PitchAgent/
 ├── backend/
 │   ├── app/
 │   │   ├── main.py                 # FastAPI wiring + CORS
