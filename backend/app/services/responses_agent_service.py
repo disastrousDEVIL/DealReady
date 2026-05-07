@@ -7,7 +7,7 @@ from typing import Any, Dict, List, Optional
 
 from openai import OpenAI
 
-from app.services.file_search_agent_service import WORKSPACE_AGENT_PROMPT
+from app.services.demo_prompt import DEMO_CHAT_PROMPT
 
 logger = logging.getLogger(__name__)
 
@@ -43,29 +43,15 @@ class ResponsesAgentService:
 
         self.client = OpenAI(api_key=api_key)
         self.model = os.getenv("OPENAI_DEFAULT_MODEL", "gpt-4o")
-        self.firecrawl_api_key = os.getenv("FIRECRAWL_API_KEY", "").strip()
 
     def _build_tools(self, vector_store_id: str, max_num_results: int) -> List[Dict[str, Any]]:
-        tools: List[Dict[str, Any]] = [
+        return [
             {
                 "type": "file_search",
                 "vector_store_ids": [vector_store_id],
                 "max_num_results": max_num_results,
             }
         ]
-
-        if self.firecrawl_api_key:
-            tools.append(
-                {
-                    "type": "mcp",
-                    "server_label": "firecrawl",
-                    "server_description": "Web scraping and search via Firecrawl MCP server.",
-                    "server_url": f"https://mcp.firecrawl.dev/{self.firecrawl_api_key}/v2/mcp",
-                    "require_approval": "never",
-                }
-            )
-
-        return tools
 
     def _extract_tool_calls(self, response: Any) -> List[Dict[str, Any]]:
         tool_calls = []
@@ -196,7 +182,7 @@ class ResponsesAgentService:
         store: bool = True,
         demo_context: Optional[str] = None,
     ) -> Dict[str, Any]:
-        instructions = WORKSPACE_AGENT_PROMPT
+        instructions = DEMO_CHAT_PROMPT
         if demo_context:
             instructions = f"{instructions}\n\nDemo context:\n{demo_context.strip()}"
 
